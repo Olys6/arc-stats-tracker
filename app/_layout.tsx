@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { TamaguiProvider } from 'tamagui';
 
+import { RaidsProvider } from '@/contexts/raids-context';
 import config from '../tamagui.config';
 
 // Custom dark theme for navigation that matches Arc Raiders aesthetic
@@ -27,13 +28,15 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <TamaguiProvider config={config} defaultTheme="dark">
-      <ThemeProvider value={ArcDarkTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="light" />
-      </ThemeProvider>
+      <RaidsProvider>
+        <ThemeProvider value={ArcDarkTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="light" />
+        </ThemeProvider>
+      </RaidsProvider>
     </TamaguiProvider>
   );
 }
