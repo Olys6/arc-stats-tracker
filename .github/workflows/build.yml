@@ -1,0 +1,83 @@
+name: EAS Build
+
+on:
+  # Build on push to main or version tags
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      
+      - name: Build Android APK
+        id: build
+        run: |
+          # Run build and capture output
+          BUILD_OUTPUT=$(eas build --platform android --profile preview --non-interactive --json)
+          echo "build_output=$BUILD_OUTPUT" >> $GITHUB_OUTPUT
+          
+          # Extract build URL
+          BUILD_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].buildDetailsPageUrl')
+          echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
+          
+          # Extract artifact URL (APK download link)
+          ARTIFACT_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].artifacts.buildUrl')
+          echo "artifact_url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+      
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Android APK
+            
+            📱 **[Download APK](${{ steps.build.outputs.artifact_url }})**
+            
+            🔗 [View build details on Expo](${{ steps.build.outputs.build_url }})
+            
+            ### Installation
+            1. Download the APK on your Android device
+            2. Enable "Install from unknown sources" if prompted
+            3. Open the APK to install
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Comment on commit (on push to main)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## 🤖 Android Build Complete!\n\n📱 **[Download APK](${{ steps.build.outputs.artifact_url }})**\n\n🔗 [View build details on Expo](${{ steps.build.outputs.build_url }})`
+            })
