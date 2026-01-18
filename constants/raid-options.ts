@@ -78,7 +78,10 @@ export const RAID_DURATIONS = [
 export const SQUAD_KILLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 // Format helpers
-export function formatInventoryValue(value: number): string {
+export function formatInventoryValue(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return '-';
+  }
   if (value >= 1000) {
     return `${(value / 1000).toFixed(0)}k`;
   }

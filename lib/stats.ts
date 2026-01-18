@@ -318,50 +318,84 @@ export function getAvgDurationByOutcome(raids: Raid[]): { win: number; loss: num
 
 // ============ LOOT ANALYSIS ============
 
+// Helper to calculate profit from a raid (handles legacy data)
+function getRaidProfit(raid: Raid): number | null {
+  if (raid.successful && raid.extractValue !== null && raid.bringInValue !== null) {
+    return raid.extractValue - raid.bringInValue;
+  }
+  if (raid.successful && raid.extractValue !== null) {
+    return raid.extractValue; // No bring-in, so extract is pure profit
+  }
+  // LEGACY: Old data with inventoryValue - treat as profit
+  if (raid.successful && raid.inventoryValue !== undefined && raid.inventoryValue !== null) {
+    return raid.inventoryValue;
+  }
+  return null;
+}
+
+// Helper to get loss from a raid (handles legacy data)
+function getRaidLoss(raid: Raid): number | null {
+  if (!raid.successful && raid.bringInValue !== null) {
+    return raid.bringInValue;
+  }
+  // LEGACY: Old data with inventoryValue on death - treat as loss
+  if (!raid.successful && raid.inventoryValue !== undefined && raid.inventoryValue !== null) {
+    return raid.inventoryValue;
+  }
+  return null;
+}
+
 export function getLootAnalysis(raids: Raid[]): LootAnalysis {
-  const wins = raids.filter(r => r.successful && r.inventoryValue !== null);
-  const losses = raids.filter(r => !r.successful && r.inventoryValue !== null);
-  const withDuration = raids.filter(r => r.raidDurationMins && r.raidDurationMins > 0 && r.inventoryValue);
+  // Wins with profit calculable
+  const winsWithProfit = raids.filter(r => r.successful && getRaidProfit(r) !== null);
+  // Losses with bring-in value (the loss)
+  const lossesWithValue = raids.filter(r => !r.successful && r.bringInValue !== null);
+  // Raids with duration and profit for efficiency calc
+  const withDuration = raids.filter(r => 
+    r.raidDurationMins && r.raidDurationMins > 0 && getRaidProfit(r) !== null
+  );
 
-  const totalLoot = wins.reduce((sum, r) => sum + (r.inventoryValue || 0), 0);
-  const totalLoss = losses.reduce((sum, r) => sum + (r.inventoryValue || 0), 0);
+  const totalProfit = winsWithProfit.reduce((sum, r) => sum + (getRaidProfit(r) || 0), 0);
+  const totalLoss = lossesWithValue.reduce((sum, r) => sum + (r.bringInValue || 0), 0);
 
-  // Loot by map (wins only)
+  // Profit by map (wins only)
   const byMap: Record<string, { avgLoot: number; totalLoot: number; count: number }> = {};
-  for (const raid of wins) {
+  for (const raid of winsWithProfit) {
+    const profit = getRaidProfit(raid) || 0;
     if (!byMap[raid.map]) byMap[raid.map] = { avgLoot: 0, totalLoot: 0, count: 0 };
-    byMap[raid.map].totalLoot += raid.inventoryValue || 0;
+    byMap[raid.map].totalLoot += profit;
     byMap[raid.map].count++;
   }
   for (const map in byMap) {
     byMap[map].avgLoot = byMap[map].totalLoot / byMap[map].count;
   }
 
-  // Loot by condition (wins only)
+  // Profit by condition (wins only)
   const byCondition: Record<string, { avgLoot: number; totalLoot: number; count: number }> = {};
-  for (const raid of wins) {
+  for (const raid of winsWithProfit) {
+    const profit = getRaidProfit(raid) || 0;
     const condition = raid.mapCondition || 'Normal';
     if (!byCondition[condition]) byCondition[condition] = { avgLoot: 0, totalLoot: 0, count: 0 };
-    byCondition[condition].totalLoot += raid.inventoryValue || 0;
+    byCondition[condition].totalLoot += profit;
     byCondition[condition].count++;
   }
   for (const condition in byCondition) {
     byCondition[condition].avgLoot = byCondition[condition].totalLoot / byCondition[condition].count;
   }
 
-  // Loot per minute
+  // Profit per minute
   let lootPerMinute = 0;
   if (withDuration.length > 0) {
-    const totalLootWithTime = withDuration.reduce((sum, r) => sum + (r.inventoryValue || 0), 0);
+    const totalProfitWithTime = withDuration.reduce((sum, r) => sum + (getRaidProfit(r) || 0), 0);
     const totalMinutes = withDuration.reduce((sum, r) => sum + (r.raidDurationMins || 0), 0);
-    lootPerMinute = totalMinutes > 0 ? totalLootWithTime / totalMinutes : 0;
+    lootPerMinute = totalMinutes > 0 ? totalProfitWithTime / totalMinutes : 0;
   }
 
   return {
-    totalLoot,
+    totalLoot: totalProfit,
     totalLoss,
-    avgLootOnWin: wins.length > 0 ? totalLoot / wins.length : 0,
-    avgLossOnDeath: losses.length > 0 ? totalLoss / losses.length : 0,
+    avgLootOnWin: winsWithProfit.length > 0 ? totalProfit / winsWithProfit.length : 0,
+    avgLossOnDeath: lossesWithValue.length > 0 ? totalLoss / lossesWithValue.length : 0,
     lootPerMinute,
     byMap,
     byCondition,
@@ -384,7 +418,7 @@ export const STAT_SECTIONS: SearchableSection[] = [
   { id: 'condition', title: 'Conditions', keywords: ['condition', 'weather', 'cold snap', 'night raid', 'storm', 'electromagnetic', 'hidden bunker', 'locked gate', 'normal'] },
   { id: 'spawn', title: 'Spawn Time', keywords: ['spawn', 'start', 'early', 'late', 'join', 'timer'] },
   { id: 'duration', title: 'Raid Duration', keywords: ['duration', 'time', 'quick', 'long', 'minutes', 'length'] },
-  { id: 'loot', title: 'Loot Analysis', keywords: ['loot', 'value', 'money', 'profit', 'loss', 'efficiency', 'credits'] },
+  { id: 'loot', title: 'Profit Analysis', keywords: ['loot', 'value', 'money', 'profit', 'loss', 'efficiency', 'credits', 'bring in', 'extract'] },
 ];
 
 export function searchSections(query: string): string[] {
@@ -403,15 +437,16 @@ export function searchSections(query: string): string[] {
 
 function createStatGroup(label: string, raids: Raid[]): StatGroup {
   const successful = raids.filter(r => r.successful).length;
-  const withLoot = raids.filter(r => r.successful && r.inventoryValue !== null);
-  const totalLoot = withLoot.reduce((sum, r) => sum + (r.inventoryValue || 0), 0);
+  // Calculate profit for each successful raid (handles legacy data)
+  const withProfit = raids.filter(r => r.successful && getRaidProfit(r) !== null);
+  const totalProfit = withProfit.reduce((sum, r) => sum + (getRaidProfit(r) || 0), 0);
 
   return {
     label,
     total: raids.length,
     successful,
     successRate: raids.length > 0 ? (successful / raids.length) * 100 : 0,
-    avgLoot: withLoot.length > 0 ? totalLoot / withLoot.length : 0,
-    totalLoot,
+    avgLoot: withProfit.length > 0 ? totalProfit / withProfit.length : 0,
+    totalLoot: totalProfit,
   };
 }

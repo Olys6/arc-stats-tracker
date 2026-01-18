@@ -39,10 +39,16 @@ export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: Ra
   const [teammates, setTeammates] = useState<string[]>(
     initialData?.teammates ?? []
   );
-  const [inventoryValue, setInventoryValue] = useState<number | null>(
-    initialData?.inventoryValue ?? null
+  // Bring-in value (what you're risking)
+  const [bringInValue, setBringInValue] = useState<number | null>(
+    initialData?.bringInValue ?? null
   );
-  const [customInventoryValue, setCustomInventoryValue] = useState('');
+  const [customBringInValue, setCustomBringInValue] = useState('');
+  // Extract value (what you came out with - only if successful)
+  const [extractValue, setExtractValue] = useState<number | null>(
+    initialData?.extractValue ?? null
+  );
+  const [customExtractValue, setCustomExtractValue] = useState('');
   const [squadKills, setSquadKills] = useState<number | null>(
     initialData?.squadKills ?? null
   );
@@ -118,7 +124,8 @@ export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: Ra
         map: map!,
         mapCondition,
         teammates,
-        inventoryValue,
+        bringInValue,
+        extractValue: successful ? extractValue : null, // Only save extract value if successful
         squadKills,
         raidDurationMins: raidDuration,
         raidStartMins: raidStartMins,
@@ -131,8 +138,10 @@ export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: Ra
       setMap(null);
       setMapCondition(null);
       setTeammates([]);
-      setInventoryValue(null);
-      setCustomInventoryValue('');
+      setBringInValue(null);
+      setCustomBringInValue('');
+      setExtractValue(null);
+      setCustomExtractValue('');
       setSquadKills(null);
       setRaidDuration(null);
       setCustomDuration('');
@@ -287,6 +296,60 @@ export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: Ra
           )}
         </YStack>
 
+        {/* Bring-In Value - What you're risking (show near top) */}
+        <YStack gap="$2">
+          <Text color="$textMuted" fontSize={14} fontWeight="500">
+            Bring-In Value (what you're risking)
+          </Text>
+          <ChipSelector
+            options={inventoryOptions}
+            selected={bringInValue}
+            onSelect={(val) => {
+              setBringInValue(val);
+              setCustomBringInValue('');
+            }}
+          />
+          <XStack gap="$2" alignItems="center">
+            <Input
+              flex={1}
+              height={44}
+              placeholder="Custom value..."
+              placeholderTextColor="$textDim"
+              backgroundColor="$surface"
+              borderColor={customBringInValue ? '$primary' : '$border'}
+              borderRadius="$2"
+              color="$color"
+              fontSize={14}
+              paddingHorizontal="$3"
+              keyboardType="numeric"
+              value={customBringInValue}
+              onChangeText={(text) => {
+                setCustomBringInValue(text);
+                const num = parseInt(text, 10);
+                if (!isNaN(num) && num >= 0) {
+                  setBringInValue(num);
+                } else if (text === '') {
+                  setBringInValue(null);
+                }
+              }}
+            />
+            {(customBringInValue !== '' || bringInValue !== null) && (
+              <Button
+                height={44}
+                paddingHorizontal="$3"
+                backgroundColor="$subtle"
+                borderRadius="$2"
+                onPress={() => {
+                  setCustomBringInValue('');
+                  setBringInValue(null);
+                }}
+              >
+                <Text color="$textMuted" fontSize={14}>Clear</Text>
+              </Button>
+            )}
+          </XStack>
+        </YStack>
+
         {/* Outcome */}
         <YStack gap="$2">
           <Text color="$textMuted" fontSize={14} fontWeight="500">
@@ -294,6 +357,73 @@ export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: Ra
           </Text>
           <OutcomeToggle value={successful} onChange={setSuccessful} />
         </YStack>
+
+        {/* Extract Value - What you came out with (only if extracted) */}
+        {successful === true && (
+          <YStack gap="$2">
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text color="$textMuted" fontSize={14} fontWeight="500">
+                Extract Value (what you came out with)
+              </Text>
+              {bringInValue !== null && extractValue !== null && (
+                <Text 
+                  color={extractValue - bringInValue >= 0 ? '$success' : '$danger'} 
+                  fontSize={14} 
+                  fontWeight="600"
+                >
+                  {extractValue - bringInValue >= 0 ? '+' : ''}{formatInventoryValue(extractValue - bringInValue)}
+                </Text>
+              )}
+            </XStack>
+            <ChipSelector
+              options={inventoryOptions}
+              selected={extractValue}
+              onSelect={(val) => {
+                setExtractValue(val);
+                setCustomExtractValue('');
+              }}
+            />
+            <XStack gap="$2" alignItems="center">
+              <Input
+                flex={1}
+                height={44}
+                placeholder="Custom value..."
+                placeholderTextColor="$textDim"
+                backgroundColor="$surface"
+                borderColor={customExtractValue ? '$success' : '$border'}
+                borderRadius="$2"
+                color="$color"
+                fontSize={14}
+                paddingHorizontal="$3"
+                keyboardType="numeric"
+                value={customExtractValue}
+                onChangeText={(text) => {
+                  setCustomExtractValue(text);
+                  const num = parseInt(text, 10);
+                  if (!isNaN(num) && num >= 0) {
+                    setExtractValue(num);
+                  } else if (text === '') {
+                    setExtractValue(null);
+                  }
+                }}
+              />
+              {(customExtractValue !== '' || extractValue !== null) && (
+                <Button
+                  height={44}
+                  paddingHorizontal="$3"
+                  backgroundColor="$subtle"
+                  borderRadius="$2"
+                  onPress={() => {
+                    setCustomExtractValue('');
+                    setExtractValue(null);
+                  }}
+                >
+                  <Text color="$textMuted" fontSize={14}>Clear</Text>
+                </Button>
+              )}
+            </XStack>
+          </YStack>
+        )}
 
         {/* Map Selection */}
         <ChipSelector
@@ -316,62 +446,6 @@ export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: Ra
 
         {/* Squad */}
         <TeammatePicker selected={teammates} onChange={setTeammates} />
-
-        {/* Inventory Value - Show for both outcomes */}
-        {successful !== null && (
-          <YStack gap="$2">
-            <Text color="$textMuted" fontSize={14} fontWeight="500">
-              {successful ? 'Loot Value' : 'Loss Value'}
-            </Text>
-            <ChipSelector
-              options={inventoryOptions}
-              selected={inventoryValue}
-              onSelect={(val) => {
-                setInventoryValue(val);
-                setCustomInventoryValue('');
-              }}
-            />
-            <XStack gap="$2" alignItems="center">
-              <Input
-                flex={1}
-                height={44}
-                placeholder="Custom value..."
-                placeholderTextColor="$textDim"
-                backgroundColor="$surface"
-                borderColor={customInventoryValue ? '$primary' : '$border'}
-                borderRadius="$2"
-                color="$color"
-                fontSize={14}
-                paddingHorizontal="$3"
-                keyboardType="numeric"
-                value={customInventoryValue}
-                onChangeText={(text) => {
-                  setCustomInventoryValue(text);
-                  const num = parseInt(text, 10);
-                  if (!isNaN(num) && num > 0) {
-                    setInventoryValue(num);
-                  } else if (text === '') {
-                    setInventoryValue(null);
-                  }
-                }}
-              />
-              {customInventoryValue !== '' && (
-                <Button
-                  height={44}
-                  paddingHorizontal="$3"
-                  backgroundColor="$subtle"
-                  borderRadius="$2"
-                  onPress={() => {
-                    setCustomInventoryValue('');
-                    setInventoryValue(null);
-                  }}
-                >
-                  <Text color="$textMuted" fontSize={14}>Clear</Text>
-                </Button>
-              )}
-            </XStack>
-          </YStack>
-        )}
 
         {/* Squad Kills */}
         <QuickNumberSelector

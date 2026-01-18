@@ -5,7 +5,9 @@ export interface Raid {
   map: string;
   mapCondition: string | null; // e.g., "Cold Snap", "Night Raid"
   teammates: string[];
-  inventoryValue: number | null;
+  bringInValue: number | null; // What you brought into the raid (potential loss)
+  extractValue: number | null; // What you extracted with (only if successful)
+  inventoryValue?: number | null; // LEGACY: Old field, kept for backward compatibility
   raidDurationMins: number | null; // How long you were in the raid
   raidStartMins: number | null; // In-game countdown time when you started (e.g., 30, 18, etc.)
   squadKills: number | null;

@@ -68,17 +68,79 @@ export function RaidCard({ raid, onDelete, onEdit }: RaidCardProps) {
 
         {/* Stats row */}
         <XStack gap="$4" flexWrap="wrap">
-          {raid.inventoryValue && (
+          {/* Show profit/loss calculation */}
+          {(() => {
+            const hasExtract = raid.extractValue !== null && raid.extractValue !== undefined;
+            const hasBringIn = raid.bringInValue !== null && raid.bringInValue !== undefined;
+            const hasLegacyValue = raid.inventoryValue !== null && raid.inventoryValue !== undefined;
+
+            if (raid.successful && hasExtract && hasBringIn) {
+              // Extracted with both values - show profit
+              const profit = raid.extractValue! - raid.bringInValue!;
+              return (
+                <YStack>
+                  <Text color="$textMuted" fontSize={10}>PROFIT</Text>
+                  <Text 
+                    color={profit >= 0 ? '$success' : '$danger'} 
+                    fontWeight="600" 
+                    fontSize={16}
+                  >
+                    {profit >= 0 ? '+' : ''}{formatInventoryValue(profit)}
+                  </Text>
+                </YStack>
+              );
+            } else if (raid.successful && hasExtract) {
+              // Extracted but no bring-in value - show extract value as profit
+              return (
+                <YStack>
+                  <Text color="$textMuted" fontSize={10}>PROFIT</Text>
+                  <Text color="$success" fontWeight="600" fontSize={16}>
+                    +{formatInventoryValue(raid.extractValue!)}
+                  </Text>
+                </YStack>
+              );
+            } else if (raid.successful && hasLegacyValue) {
+              // LEGACY: Old data with inventoryValue - treat as profit
+              return (
+                <YStack>
+                  <Text color="$textMuted" fontSize={10}>PROFIT</Text>
+                  <Text color="$success" fontWeight="600" fontSize={16}>
+                    +{formatInventoryValue(raid.inventoryValue!)}
+                  </Text>
+                </YStack>
+              );
+            } else if (!raid.successful && hasBringIn) {
+              // Died with bring-in value - show loss
+              return (
+                <YStack>
+                  <Text color="$textMuted" fontSize={10}>LOST</Text>
+                  <Text color="$danger" fontWeight="600" fontSize={16}>
+                    -{formatInventoryValue(raid.bringInValue!)}
+                  </Text>
+                </YStack>
+              );
+            } else if (!raid.successful && hasLegacyValue) {
+              // LEGACY: Old data with inventoryValue on death - treat as loss
+              return (
+                <YStack>
+                  <Text color="$textMuted" fontSize={10}>LOST</Text>
+                  <Text color="$danger" fontWeight="600" fontSize={16}>
+                    -{formatInventoryValue(raid.inventoryValue!)}
+                  </Text>
+                </YStack>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Show bring-in value as secondary info when extracted */}
+          {raid.successful && raid.bringInValue !== null && raid.bringInValue !== undefined && (
             <YStack>
               <Text color="$textMuted" fontSize={10}>
-                {raid.successful ? 'LOOT' : 'LOSS'}
+                BROUGHT IN
               </Text>
-              <Text 
-                color={raid.successful ? '$primary' : '$danger'} 
-                fontWeight="600" 
-                fontSize={16}
-              >
-                {formatInventoryValue(raid.inventoryValue)}
+              <Text color="$textMuted" fontWeight="500" fontSize={14}>
+                {formatInventoryValue(raid.bringInValue)}
               </Text>
             </YStack>
           )}

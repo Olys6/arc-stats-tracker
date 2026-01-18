@@ -37,17 +37,19 @@ jobs:
       - name: Build Android APK
         id: build
         run: |
-          # Run build and capture output
-          BUILD_OUTPUT=$(eas build --platform android --profile preview --non-interactive --json)
-          echo "build_output=$BUILD_OUTPUT" >> $GITHUB_OUTPUT
+          # Run build and save JSON output to file
+          eas build --platform android --profile preview --non-interactive --json > build_output.json
           
-          # Extract build URL
-          BUILD_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].buildDetailsPageUrl')
+          # Extract URLs from JSON
+          BUILD_URL=$(jq -r '.[0].buildDetailsPageUrl' build_output.json)
+          ARTIFACT_URL=$(jq -r '.[0].artifacts.buildUrl' build_output.json)
+          
           echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
-          
-          # Extract artifact URL (APK download link)
-          ARTIFACT_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].artifacts.buildUrl')
           echo "artifact_url=$ARTIFACT_URL" >> $GITHUB_OUTPUT
+          
+          # Debug output
+          echo "Build URL: $BUILD_URL"
+          echo "Artifact URL: $ARTIFACT_URL"
       
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')

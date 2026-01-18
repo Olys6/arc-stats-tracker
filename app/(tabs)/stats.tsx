@@ -363,11 +363,11 @@ export default function StatsScreen() {
 
               {/* Loot Analysis */}
               {isVisible('loot') && (lootAnalysis.totalLoot > 0 || lootAnalysis.totalLoss > 0) && (
-                <StatSection title="Loot Analysis">
+                <StatSection title="Profit Analysis">
                   <YStack gap="$2">
-                    <LootStat label="Total Loot Gained" value={lootAnalysis.totalLoot} color="$success" />
-                    <LootStat label="Total Value Lost" value={lootAnalysis.totalLoss} color="$danger" />
-                    <LootStat label="Avg Loot (Wins)" value={lootAnalysis.avgLootOnWin} />
+                    <LootStat label="Total Profit" value={lootAnalysis.totalLoot} color="$success" />
+                    <LootStat label="Total Lost" value={lootAnalysis.totalLoss} color="$danger" />
+                    <LootStat label="Avg Profit (Wins)" value={lootAnalysis.avgLootOnWin} />
                     <LootStat label="Avg Loss (Deaths)" value={lootAnalysis.avgLossOnDeath} color="$danger" />
                     {lootAnalysis.lootPerMinute > 0 && (
                       <LootStat label="Loot per Minute" value={Math.round(lootAnalysis.lootPerMinute)} />
@@ -376,7 +376,7 @@ export default function StatsScreen() {
 
                   {Object.keys(lootAnalysis.byMap).length > 0 && (
                     <YStack gap="$2" marginTop="$3">
-                      <Text color="$textMuted" fontSize={12} fontWeight="500">Avg Loot by Map</Text>
+                      <Text color="$textMuted" fontSize={12} fontWeight="500">Avg Profit by Map</Text>
                       {Object.entries(lootAnalysis.byMap)
                         .sort((a, b) => b[1].avgLoot - a[1].avgLoot)
                         .map(([map, data]) => (
@@ -387,7 +387,7 @@ export default function StatsScreen() {
 
                   {Object.keys(lootAnalysis.byCondition).length > 0 && (
                     <YStack gap="$2" marginTop="$3">
-                      <Text color="$textMuted" fontSize={12} fontWeight="500">Avg Loot by Condition</Text>
+                      <Text color="$textMuted" fontSize={12} fontWeight="500">Avg Profit by Condition</Text>
                       {Object.entries(lootAnalysis.byCondition)
                         .sort((a, b) => b[1].avgLoot - a[1].avgLoot)
                         .map(([condition, data]) => (
