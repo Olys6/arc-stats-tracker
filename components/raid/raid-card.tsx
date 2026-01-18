@@ -6,13 +6,21 @@ import type { Raid } from '@/types/raid';
 interface RaidCardProps {
   raid: Raid;
   onDelete?: (id: string) => void;
+  onEdit?: (raid: Raid) => void;
 }
 
-export function RaidCard({ raid, onDelete }: RaidCardProps) {
+export function RaidCard({ raid, onDelete, onEdit }: RaidCardProps) {
   const handleDelete = () => {
     if (onDelete) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onDelete(raid.id);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onEdit(raid);
     }
   };
 
@@ -131,19 +139,33 @@ export function RaidCard({ raid, onDelete }: RaidCardProps) {
           </XStack>
         )}
 
-        {/* Delete button */}
-        {onDelete && (
-          <XStack justifyContent="flex-end" marginTop="$1">
-            <Button
-              height={32}
-              backgroundColor="transparent"
-              pressStyle={{ opacity: 0.7 }}
-              onPress={handleDelete}
-            >
-              <Text color="$danger" fontSize={12}>
-                Delete
-              </Text>
-            </Button>
+        {/* Action buttons */}
+        {(onEdit || onDelete) && (
+          <XStack justifyContent="flex-end" gap="$3" marginTop="$1">
+            {onEdit && (
+              <Button
+                height={32}
+                backgroundColor="transparent"
+                pressStyle={{ opacity: 0.7 }}
+                onPress={handleEdit}
+              >
+                <Text color="$primary" fontSize={12}>
+                  Edit
+                </Text>
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                height={32}
+                backgroundColor="transparent"
+                pressStyle={{ opacity: 0.7 }}
+                onPress={handleDelete}
+              >
+                <Text color="$danger" fontSize={12}>
+                  Delete
+                </Text>
+              </Button>
+            )}
           </XStack>
         )}
       </YStack>

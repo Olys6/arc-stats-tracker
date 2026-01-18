@@ -1,13 +1,16 @@
 import { useState, useCallback } from 'react';
-import { View, Alert, RefreshControl } from 'react-native';
+import { View, Alert, RefreshControl, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { YStack, Text, ScrollView } from 'tamagui';
+import { YStack, XStack, Text, ScrollView, Button } from 'tamagui';
 import { RaidCard, EmptyRaidList } from '@/components/raid/raid-card';
+import { RaidForm } from '@/components/raid/raid-form';
 import { useRaids } from '@/hooks/use-raids';
+import type { Raid, RaidFormData } from '@/types/raid';
 
 export default function HistoryScreen() {
-  const { raids, loading, removeRaid, refresh } = useRaids();
+  const { raids, loading, removeRaid, updateRaid, refresh } = useRaids();
   const [refreshing, setRefreshing] = useState(false);
+  const [editingRaid, setEditingRaid] = useState<Raid | null>(null);
   const insets = useSafeAreaInsets();
 
   const onRefresh = useCallback(async () => {
@@ -29,6 +32,21 @@ export default function HistoryScreen() {
         },
       ]
     );
+  };
+
+  const handleEdit = (raid: Raid) => {
+    setEditingRaid(raid);
+  };
+
+  const handleEditSubmit = async (data: RaidFormData) => {
+    if (editingRaid) {
+      await updateRaid(editingRaid.id, data);
+      setEditingRaid(null);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditingRaid(null);
   };
 
   if (loading && raids.length === 0) {
@@ -73,12 +91,59 @@ export default function HistoryScreen() {
                   key={raid.id}
                   raid={raid}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               ))}
             </YStack>
           )}
         </ScrollView>
       </YStack>
+
+      {/* Edit Modal */}
+      <Modal
+        visible={editingRaid !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleEditCancel}
+      >
+        <View style={{ flex: 1, backgroundColor: '#0a0a0b', paddingTop: insets.top }}>
+          <YStack flex={1} padding="$4">
+            <XStack justifyContent="space-between" alignItems="center" marginBottom="$4">
+              <Text fontSize={24} fontWeight="700" color="$color">
+                Edit Raid
+              </Text>
+              <Button
+                height={36}
+                paddingHorizontal="$3"
+                backgroundColor="transparent"
+                pressStyle={{ opacity: 0.7 }}
+                onPress={handleEditCancel}
+              >
+                <Text color="$primary" fontSize={16}>
+                  Cancel
+                </Text>
+              </Button>
+            </XStack>
+            
+            {editingRaid && (
+              <RaidForm
+                onSubmit={handleEditSubmit}
+                initialData={{
+                  successful: editingRaid.successful,
+                  map: editingRaid.map,
+                  mapCondition: editingRaid.mapCondition,
+                  teammates: editingRaid.teammates,
+                  inventoryValue: editingRaid.inventoryValue,
+                  raidDurationMins: editingRaid.raidDurationMins,
+                  raidStartMins: editingRaid.raidStartMins,
+                  squadKills: editingRaid.squadKills,
+                }}
+                submitLabel="Save Changes"
+              />
+            )}
+          </YStack>
+        </View>
+      </Modal>
     </View>
   );
 }

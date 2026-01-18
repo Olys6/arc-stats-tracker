@@ -25,9 +25,10 @@ function formatTimerDisplay(seconds: number): string {
 interface RaidFormProps {
   onSubmit: (data: RaidFormData) => Promise<void>;
   initialData?: Partial<RaidFormData>;
+  submitLabel?: string;
 }
 
-export function RaidForm({ onSubmit, initialData }: RaidFormProps) {
+export function RaidForm({ onSubmit, initialData, submitLabel = 'LOG RAID' }: RaidFormProps) {
   const [successful, setSuccessful] = useState<boolean | null>(
     initialData?.successful ?? null
   );
@@ -49,7 +50,9 @@ export function RaidForm({ onSubmit, initialData }: RaidFormProps) {
     initialData?.raidDurationMins ?? null
   );
   const [customDuration, setCustomDuration] = useState('');
-  const [raidStartMins, setRaidStartMins] = useState<number | null>(null);
+  const [raidStartMins, setRaidStartMins] = useState<number | null>(
+    initialData?.raidStartMins ?? null
+  );
   const [customStartMins, setCustomStartMins] = useState('');
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerStartedAt, setTimerStartedAt] = useState<Date | null>(null);
@@ -458,7 +461,7 @@ export function RaidForm({ onSubmit, initialData }: RaidFormProps) {
             fontSize={18}
             fontWeight="700"
           >
-            {submitting ? 'Saving...' : 'LOG RAID'}
+            {submitting ? 'Saving...' : submitLabel}
           </Text>
         </Button>
 
