@@ -9,6 +9,10 @@ on:
   # Allow manual trigger from GitHub Actions tab
   workflow_dispatch:
 
+# Permissions needed to create releases and post comments
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Build Android APK
@@ -40,9 +44,14 @@ jobs:
           # Run build and save JSON output to file
           eas build --platform android --profile preview --non-interactive --json > build_output.json
           
-          # Extract URLs from JSON
-          BUILD_URL=$(jq -r '.[0].buildDetailsPageUrl' build_output.json)
-          ARTIFACT_URL=$(jq -r '.[0].artifacts.buildUrl' build_output.json)
+          # Extract URLs from JSON (handle null values)
+          BUILD_URL=$(jq -r '.[0].buildDetailsPageUrl // empty' build_output.json)
+          ARTIFACT_URL=$(jq -r '.[0].artifacts.buildUrl // empty' build_output.json)
+          
+          # Fallback to Expo builds page if artifact URL is missing
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+            ARTIFACT_URL="$BUILD_URL"
+          fi
           
           echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
           echo "artifact_url=$ARTIFACT_URL" >> $GITHUB_OUTPUT

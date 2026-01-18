@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
-import { View, Alert, RefreshControl, Modal } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { YStack, XStack, Text, ScrollView, Button } from 'tamagui';
-import { RaidCard, EmptyRaidList } from '@/components/raid/raid-card';
+import { EmptyRaidList, RaidCard } from '@/components/raid/raid-card';
 import { RaidForm } from '@/components/raid/raid-form';
 import { useRaids } from '@/hooks/use-raids';
 import type { Raid, RaidFormData } from '@/types/raid';
+import { useCallback, useState } from 'react';
+import { Alert, Modal, RefreshControl, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, ScrollView, Text, XStack, YStack } from 'tamagui';
 
 export default function HistoryScreen() {
   const { raids, loading, removeRaid, updateRaid, refresh } = useRaids();
@@ -133,8 +133,11 @@ export default function HistoryScreen() {
                   map: editingRaid.map,
                   mapCondition: editingRaid.mapCondition,
                   teammates: editingRaid.teammates,
-                  bringInValue: editingRaid.bringInValue,
-                  extractValue: editingRaid.extractValue,
+                  // Handle legacy data: if old inventoryValue exists, map it appropriately
+                  bringInValue: editingRaid.bringInValue ?? 
+                    (!editingRaid.successful ? editingRaid.inventoryValue : null) ?? null,
+                  extractValue: editingRaid.extractValue ?? 
+                    (editingRaid.successful ? editingRaid.inventoryValue : null) ?? null,
                   raidDurationMins: editingRaid.raidDurationMins,
                   raidStartMins: editingRaid.raidStartMins,
                   squadKills: editingRaid.squadKills,
