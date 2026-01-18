@@ -75,7 +75,7 @@ export const RAID_DURATIONS = [
 ] as const;
 
 // Quick squad kill options
-export const SQUAD_KILLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const SQUAD_KILLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as const;
 
 // Format helpers
 export function formatInventoryValue(value: number | null | undefined): string {
